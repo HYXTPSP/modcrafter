@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "modcrafter",
+  "version": "${version}",
+  "name": "ModCrafter 模组工坊",
+  "description": "在 Minecraft 里制作 Minecraft 模组：游戏内可视化编辑物品、方块、配方与事件逻辑，支持热加载、内容包分享，并可导出为独立的 Fabric 模组工程。",
+  "authors": [
+    "HYXT"
+  ],
+  "license": "MIT",
+  "icon": "assets/modcrafter/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.hyxt.modcrafter.ModCrafter"
+    ],
+    "client": [
+      "dev.hyxt.modcrafter.client.ModCrafterClient"
+    ]
+  },
+  "mixins": [
+    "modcrafter.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": [">=1.21", "<1.21.2"],
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

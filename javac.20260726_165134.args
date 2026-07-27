@@ -1,0 +1,5 @@
+-d
+/tmp/out
+--release
+21
+@/tmp/sources.txt

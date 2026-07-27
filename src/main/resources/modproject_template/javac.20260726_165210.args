@@ -1,0 +1,10 @@
+-d
+/tmp/tplout
+--release
+21
+-Xmaxerrs
+10000
+/tmp/tplcheck/crafted/testpack/ContentClasses.java
+/tmp/tplcheck/crafted/testpack/Defs.java
+/tmp/tplcheck/crafted/testpack/EventRt.java
+/tmp/tplcheck/crafted/testpack/PackMod.java
