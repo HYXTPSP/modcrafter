@@ -1,7 +1,7 @@
 # ModCrafter 模组工坊
 
 <p align="center">
-  <img src="assets/logo.png" width="128" alt="ModCrafter Logo">
+  <img src="assets/logo.png" width="256" alt="ModCrafter Logo">
 </p>
 
 **在 Minecraft 里制作 Minecraft 模组。**
@@ -62,12 +62,6 @@ resourcepacks/ModCrafter/                       # 自动生成的资源包(勿�
 ```
 
 ## 截图预览
-
-<p align="center">
-  <img src="assets/logo.png" width="200" alt="项目图标">
-  <br>
-  <em>ModCrafter 项目图标</em>
-</p>
 
 <p align="center">
   <img src="assets/painter.png" width="600" alt="画板">
