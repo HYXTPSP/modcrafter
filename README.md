@@ -1,5 +1,9 @@
 # ModCrafter 模组工坊
 
+<p align="center">
+  <img src="assets/logo.png" width="128" alt="ModCrafter Logo">
+</p>
+
 **在 Minecraft 里制作 Minecraft 模组。**
 
 这是一个 Fabric 模组(MC 1.21.1),让你不写一行代码、不离开游戏,
@@ -56,6 +60,50 @@ config/modcrafter/exports/                      # 导出产物
 resourcepacks/ModCrafter/                       # 自动生成的资源包(勿手改)
 <存档>/datapacks/ModCrafterData/                # 自动生成的数据包(勿手改)
 ```
+
+## 截图预览
+
+<p align="center">
+  <img src="assets/logo.png" width="200" alt="项目图标">
+  <br>
+  <em>ModCrafter 项目图标</em>
+</p>
+
+<p align="center">
+  <img src="assets/painter.png" width="600" alt="画板">
+  <br>
+  <em>16×16 像素画板 - 自定义物品贴图</em>
+</p>
+
+<p align="center">
+  <img src="assets/new_item_inventory.png" width="600" alt="新增物品在物品栏中">
+  <br>
+  <em>新增物品在创造物品栏中的显示效果</em>
+</p>
+
+<p align="center">
+  <img src="assets/new_block.png" width="600" alt="新增方块">
+  <br>
+  <em>自定义方块编辑界面</em>
+</p>
+
+<p align="center">
+  <img src="assets/voxel_editor.png" width="600" alt="体素建模">
+  <br>
+  <em>体素建模器 - 游戏内搭建 3D 模型</em>
+</p>
+
+<p align="center">
+  <img src="assets/item_demo.gif" width="600" alt="物品展示">
+  <br>
+  <em>自定义物品游戏内展示</em>
+</p>
+
+<p align="center">
+  <img src="assets/export.png" width="600" alt="导出界面">
+  <br>
+  <em>一键导出分享包或独立 Fabric 模组工程</em>
+</p>
 
 ## 已知限制(v0.3)
 
