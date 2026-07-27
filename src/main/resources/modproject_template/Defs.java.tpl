@@ -25,6 +25,9 @@ public final class Defs {
         public List<String> tooltip = new ArrayList<>();
         public String type = "ITEM";
         public String armorMaterial = "IRON";
+        public String armorTexMode = "VANILLA";
+        public String armorColor = "#FF5555";
+        public String model = "";
         public int maxCount = 64;
         public int maxDamage = 0;
         public String rarity = "COMMON";
@@ -62,6 +65,8 @@ public final class Defs {
         public boolean transparent = false;
         public float slipperiness = 0.6f;
         public OreGenD oreGen = null;
+        public String textureMode = "SINGLE";
+        public String facingMode = "NONE";
     }
 
     public static class OreGenD {
@@ -113,6 +118,20 @@ public final class Defs {
             return pack;
         } catch (Exception e) {
             return new Pack();
+        }
+    }
+
+    /** 体素模型方块的包围盒(导出时预计算): blockId -> [minX,minY,minZ,maxX,maxY,maxZ] 0-16 */
+    public static java.util.Map<String, double[]> loadShapes() {
+        try (InputStream in = Defs.class.getResourceAsStream("/packdata/shapes.json")) {
+            if (in == null) return new java.util.HashMap<>();
+            java.util.Map<String, double[]> map = new Gson().fromJson(
+                new InputStreamReader(in, StandardCharsets.UTF_8),
+                new com.google.gson.reflect.TypeToken<java.util.Map<String, double[]>>() {
+                }.getType());
+            return map == null ? new java.util.HashMap<>() : map;
+        } catch (Exception e) {
+            return new java.util.HashMap<>();
         }
     }
 

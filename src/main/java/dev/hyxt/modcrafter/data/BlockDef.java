@@ -4,8 +4,29 @@ package dev.hyxt.modcrafter.data;
 public class BlockDef {
     public String id = "";
     public String name = "";
-    /** 同 ItemDef.texture: preset:xxx / custom:xxx */
+    /** 同 ItemDef.texture: preset:xxx / custom:xxx (SINGLE 模式使用) */
     public String texture = "preset:block_stone";
+
+    /** 贴图/模型模式: SINGLE(单一贴图) / PER_FACE(六面贴图) / MODEL(体素模型) */
+    public String textureMode = "SINGLE";
+
+    /** PER_FACE 模式的六面贴图 */
+    public FacesDef faces = new FacesDef();
+
+    /** MODEL 模式的体素模型名 */
+    public String model = "";
+
+    /** 朝向: NONE / HORIZONTAL(放置时面向玩家,水平四向) / ALL(六向,像投掷器) */
+    public String facingMode = "NONE";
+
+    public static class FacesDef {
+        public String up = "preset:block_white";
+        public String down = "preset:block_white";
+        public String north = "preset:block_white";
+        public String south = "preset:block_white";
+        public String east = "preset:block_white";
+        public String west = "preset:block_white";
+    }
 
     public float hardness = 3.0f;
     public float resistance = 6.0f;

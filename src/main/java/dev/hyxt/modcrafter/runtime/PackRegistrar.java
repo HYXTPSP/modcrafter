@@ -5,14 +5,20 @@ import dev.hyxt.modcrafter.data.BlockDef;
 import dev.hyxt.modcrafter.data.ContentPack;
 import dev.hyxt.modcrafter.data.ItemDef;
 import dev.hyxt.modcrafter.data.PackManager;
+import dev.hyxt.modcrafter.data.VoxelModel;
 import dev.hyxt.modcrafter.runtime.content.McArmorItem;
 import dev.hyxt.modcrafter.runtime.content.McBlock;
+import dev.hyxt.modcrafter.runtime.content.McFacingBlock;
 import dev.hyxt.modcrafter.runtime.content.McFoodItem;
+import dev.hyxt.modcrafter.runtime.content.McHorizontalBlock;
+import dev.hyxt.modcrafter.runtime.content.ShapeUtil;
 import dev.hyxt.modcrafter.runtime.content.McItem;
 import dev.hyxt.modcrafter.runtime.content.McMiningToolItem;
 import dev.hyxt.modcrafter.runtime.content.McSwordItem;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ArmorMaterial;
@@ -32,6 +38,8 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
+
+import java.util.List;
 
 /** 把内容包定义注册进 Minecraft 注册表 */
 public final class PackRegistrar {
@@ -141,7 +149,7 @@ public final class PackRegistrar {
                 return new McMiningToolItem.Hoe(def, packId, mat, settings);
             }
             case "HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS" -> {
-                RegistryEntry<ArmorMaterial> mat = parseArmorMaterial(def.armorMaterial);
+                RegistryEntry<ArmorMaterial> mat = armorMaterialFor(def, packId);
                 ArmorItem.Type type = switch (def.type) {
                     case "HELMET" -> ArmorItem.Type.HELMET;
                     case "CHESTPLATE" -> ArmorItem.Type.CHESTPLATE;
@@ -150,6 +158,10 @@ public final class PackRegistrar {
                 };
                 if (def.maxDamage <= 0) {
                     settings.maxDamage(type.getMaxDamage(15)); // 铁甲耐久系数
+                }
+                if ("TINT".equals(def.armorTexMode)) {
+                    settings.component(DataComponentTypes.DYED_COLOR,
+                        new DyedColorComponent(parseColor(def.armorColor, 0xFF5555), false));
                 }
                 return new McArmorItem(def, packId, mat, type, settings);
             }
@@ -176,7 +188,76 @@ public final class PackRegistrar {
         if (def.slipperiness > 0 && def.slipperiness != 0.6f) {
             settings.slipperiness(Math.min(0.999f, def.slipperiness));
         }
-        return new McBlock(def, packId, settings);
+
+        // 体素模型: 非满格时必须 nonOpaque,并计算轮廓
+        double[] bounds = modelBounds(def, packId);
+        if (bounds != null && !ShapeUtil.isFullCube(bounds)) {
+            settings.nonOpaque();
+        }
+
+        McBlock block = switch (def.facingMode == null ? "NONE" : def.facingMode) {
+            case "HORIZONTAL" -> new McHorizontalBlock(def, packId, settings);
+            case "ALL" -> new McFacingBlock(def, packId, settings);
+            default -> new McBlock(def, packId, settings);
+        };
+        block.updateShapeBounds(bounds);
+        return block;
+    }
+
+    /** MODEL 模式方块的体素包围盒;非 MODEL 或模型缺失返回 null */
+    public static double[] modelBounds(BlockDef def, String packId) {
+        if (!"MODEL".equals(def.textureMode) || def.model == null || def.model.isEmpty()) return null;
+        VoxelModel model = PackManager.loadVoxelModel(packId, def.model);
+        if (model == null || model.isEmpty()) return null;
+        return VoxelMesher.bounds(model);
+    }
+
+    /** 热应用后刷新已注册方块的碰撞/轮廓箱(模型可能被重新编辑过) */
+    public static void refreshShapes() {
+        for (ContentPack pack : PackManager.all()) {
+            for (BlockDef def : pack.blocks) {
+                Block block = RuntimeRegistry.BLOCKS.get(Identifier.of(pack.id, def.id));
+                if (block instanceof McBlock mc) {
+                    mc.updateShapeBounds(modelBounds(def, pack.id));
+                }
+            }
+        }
+    }
+
+    /** 盔甲材质: VANILLA 直接用原版;TINT/CUSTOM 注册专属材质(数值继承所选基础材质) */
+    public static RegistryEntry<ArmorMaterial> armorMaterialFor(ItemDef def, String packId) {
+        RegistryEntry<ArmorMaterial> base = parseArmorMaterial(def.armorMaterial);
+        String mode = def.armorTexMode == null ? "VANILLA" : def.armorTexMode;
+        if ("VANILLA".equals(mode)) return base;
+
+        Identifier id = Identifier.of(packId, def.id + "_mat");
+        ArmorMaterial existing = Registries.ARMOR_MATERIAL.get(id);
+        if (existing != null) {
+            return Registries.ARMOR_MATERIAL.getEntry(existing);
+        }
+
+        ArmorMaterial bm = base.value();
+        List<ArmorMaterial.Layer> layers;
+        if ("TINT".equals(mode)) {
+            // 皮革布局(可染色) + 白色覆盖层,与原版皮革甲结构一致
+            layers = List.of(
+                new ArmorMaterial.Layer(Identifier.of("minecraft", "leather"), "", true),
+                new ArmorMaterial.Layer(Identifier.of("minecraft", "leather"), "_overlay", false));
+        } else {
+            layers = List.of(new ArmorMaterial.Layer(Identifier.of(packId, def.id), "", false));
+        }
+        ArmorMaterial material = new ArmorMaterial(
+            bm.defense(), bm.enchantability(), bm.equipSound(), bm.repairIngredient(),
+            layers, bm.toughness(), bm.knockbackResistance());
+        return Registry.registerReference(Registries.ARMOR_MATERIAL, id, material);
+    }
+
+    public static int parseColor(String hex, int fallback) {
+        try {
+            return (int) Long.parseLong(hex.replace("#", "").trim(), 16) & 0xFFFFFF;
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     public static RegistryEntry<ArmorMaterial> parseArmorMaterial(String s) {

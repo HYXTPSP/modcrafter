@@ -196,6 +196,68 @@ public class PackManager {
         return new ArrayList<>(PACKS.values());
     }
 
+    // ===== 体素模型 =====
+
+    public static Path modelsDir(String packId) {
+        return packDir(packId).resolve("models");
+    }
+
+    public static Path modelFile(String packId, String name) {
+        return modelsDir(packId).resolve(name + ".json");
+    }
+
+    /** 盔甲层贴图目录 (64×32 PNG) */
+    public static Path armorDir(String packId) {
+        return packDir(packId).resolve("armor");
+    }
+
+    public static List<String> listVoxelModels(String packId) {
+        List<String> names = new ArrayList<>();
+        Path dir = modelsDir(packId);
+        if (!Files.isDirectory(dir)) return names;
+        try (Stream<Path> files = Files.list(dir)) {
+            files.filter(p -> p.getFileName().toString().endsWith(".json"))
+                .sorted()
+                .forEach(p -> {
+                    String n = p.getFileName().toString();
+                    names.add(n.substring(0, n.length() - 5));
+                });
+        } catch (IOException ignored) {
+        }
+        return names;
+    }
+
+    public static VoxelModel loadVoxelModel(String packId, String name) {
+        Path file = modelFile(packId, name);
+        if (!Files.exists(file)) return null;
+        try {
+            VoxelModel model = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), VoxelModel.class);
+            if (model == null || model.size < 4 || model.size > 32) return null;
+            if (model.palette == null) model.palette = new ArrayList<>();
+            return model;
+        } catch (Exception e) {
+            ModCrafter.LOGGER.error("读取体素模型失败: " + file, e);
+            return null;
+        }
+    }
+
+    public static void saveVoxelModel(String packId, String name, VoxelModel model) {
+        try {
+            Path file = modelFile(packId, name);
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, GSON.toJson(model), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            ModCrafter.LOGGER.error("保存体素模型失败: " + name, e);
+        }
+    }
+
+    public static void deleteVoxelModel(String packId, String name) {
+        try {
+            Files.deleteIfExists(modelFile(packId, name));
+        } catch (IOException ignored) {
+        }
+    }
+
     /** 列出某个包的自定义贴图名(不含扩展名) */
     public static List<String> listCustomTextures(String packId) {
         List<String> names = new ArrayList<>();

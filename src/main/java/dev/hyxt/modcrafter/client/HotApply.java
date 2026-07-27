@@ -25,6 +25,9 @@ public final class HotApply {
 
         int added = HotAdd.tryHotRegister(pack);
 
+        // 模型可能被重新编辑,刷新已注册方块的碰撞/轮廓箱
+        dev.hyxt.modcrafter.runtime.PackRegistrar.refreshShapes();
+
         // 客户端资源(模型/贴图/名字)
         ResourcePackGen.regenerate();
         MinecraftClient client = MinecraftClient.getInstance();

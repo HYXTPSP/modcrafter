@@ -1,0 +1,11 @@
+-d
+/tmp/tplout
+--release
+21
+-Xmaxerrs
+30000
+/tmp/tplcheck/ContentClasses.java
+/tmp/tplcheck/Defs.java
+/tmp/tplcheck/EventRt.java
+/tmp/tplcheck/PackMod.java
+/tmp/tplcheck/PackModClient.java

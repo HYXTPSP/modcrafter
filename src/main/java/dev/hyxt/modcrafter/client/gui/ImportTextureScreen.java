@@ -24,6 +24,8 @@ import java.util.function.Consumer;
 public class ImportTextureScreen extends BaseScreen {
     private final String packId;
     private final Consumer<String> callback;
+    /** 盔甲层模式: 不裁剪,缩放到 64×32,保存到固定文件 */
+    private final Path armorTarget;
 
     private TextFieldWidget pathField;
     private TextFieldWidget nameField;
@@ -37,6 +39,20 @@ public class ImportTextureScreen extends BaseScreen {
         super(parent, Text.translatable("modcrafter.title.import_texture"));
         this.packId = packId;
         this.callback = callback;
+        this.armorTarget = null;
+    }
+
+    private ImportTextureScreen(Screen parent, String packId, Path armorTarget) {
+        super(parent, Text.translatable("modcrafter.title.import_armor"));
+        this.packId = packId;
+        this.callback = null;
+        this.armorTarget = armorTarget;
+    }
+
+    /** 盔甲层贴图导入(layer=1 头盔/胸甲, layer=2 护腿;靴子用层1) */
+    public static ImportTextureScreen armorLayer(Screen parent, String packId, String itemId, int layer) {
+        return new ImportTextureScreen(parent, packId,
+            PackManager.armorDir(packId).resolve(itemId + "_layer_" + layer + ".png"));
     }
 
     @Override
@@ -51,21 +67,30 @@ public class ImportTextureScreen extends BaseScreen {
         y += 30;
 
         addBtn(lx, y, 90, 20, Text.translatable("modcrafter.btn.load_preview"), this::loadPreview);
-        this.addDrawableChild(CyclingButtonWidget.<String>builder(Text::literal)
-            .values(SIZES).initially(sizeChoice)
-            .build(lx + 96, y, 90, 20, Text.translatable("modcrafter.label.import_size"),
-                (btn, v) -> sizeChoice = v));
+        if (armorTarget == null) {
+            this.addDrawableChild(CyclingButtonWidget.<String>builder(Text::literal)
+                .values(SIZES).initially(sizeChoice)
+                .build(lx + 96, y, 90, 20, Text.translatable("modcrafter.label.import_size"),
+                    (btn, v) -> sizeChoice = v));
+        }
         y += 30;
 
-        label(lx, y - 10, Text.translatable("modcrafter.label.texture_name"));
-        nameField = addField(lx, y, 140, 18,
-            nameField != null ? nameField.getText() : "img_" + (PackManager.listCustomTextures(packId).size() + 1));
-        y += 34;
+        if (armorTarget == null) {
+            label(lx, y - 10, Text.translatable("modcrafter.label.texture_name"));
+            nameField = addField(lx, y, 140, 18,
+                nameField != null ? nameField.getText() : "img_" + (PackManager.listCustomTextures(packId).size() + 1));
+            y += 34;
+        }
 
         addBtn(lx, y, 90, 20, Text.translatable("modcrafter.btn.do_import"), this::doImport);
 
-        label(lx, y + 30, Text.translatable("modcrafter.label.import_hint"), 0x808080);
-        label(lx, y + 42, Text.translatable("modcrafter.label.import_hint2"), 0x808080);
+        if (armorTarget == null) {
+            label(lx, y + 30, Text.translatable("modcrafter.label.import_hint"), 0x808080);
+            label(lx, y + 42, Text.translatable("modcrafter.label.import_hint2"), 0x808080);
+        } else {
+            label(lx, y + 30, Text.translatable("modcrafter.label.armor_import_hint"), 0x808080);
+            label(lx, y + 42, Text.translatable("modcrafter.label.armor_import_hint2"), 0x808080);
+        }
 
         addBtn(cx - 50, this.height - 26, 100, 20, Text.translatable("modcrafter.btn.back"), this::close);
     }
@@ -95,6 +120,23 @@ public class ImportTextureScreen extends BaseScreen {
         if (previewImage == null || !pathField.getText().trim().replace("\"", "").equals(loadedPath)) {
             loadPreview();
             if (previewImage == null) return;
+        }
+        if (armorTarget != null) {
+            // 盔甲层: 缩放到 64×32 保存到固定位置
+            try {
+                BufferedImage out = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = out.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g.drawImage(previewImage, 0, 0, 64, 32, null);
+                g.dispose();
+                Files.createDirectories(armorTarget.getParent());
+                ImageIO.write(out, "PNG", armorTarget.toFile());
+                this.close();
+            } catch (Exception e) {
+                setFeedback(Text.literal("导入失败: " + e.getMessage()), false);
+            }
+            return;
         }
         String name = nameField.getText().trim().toLowerCase();
         if (!ContentPack.isValidId(name)) {

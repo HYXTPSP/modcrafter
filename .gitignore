@@ -1,4 +1,11 @@
-*.jar
 .gradle/
 build/
-__pycache__/
+out/
+run/
+.idea/
+*.iml
+.vscode/
+bin/
+.classpath
+.project
+.settings/

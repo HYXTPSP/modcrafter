@@ -19,8 +19,21 @@ public class ItemDef {
     /** ITEM / FOOD / SWORD / PICKAXE / AXE / SHOVEL / HOE / HELMET / CHESTPLATE / LEGGINGS / BOOTS */
     public String type = "ITEM";
 
-    /** 盔甲材质(决定护甲值与穿戴外观): LEATHER / CHAIN / IRON / GOLD / DIAMOND / NETHERITE / TURTLE */
+    /** 盔甲材质(决定护甲数值): LEATHER / CHAIN / IRON / GOLD / DIAMOND / NETHERITE / TURTLE */
     public String armorMaterial = "IRON";
+
+    /**
+     * 盔甲穿戴外观:
+     *  VANILLA - 所选材质的原版外观
+     *  TINT    - 皮革布局 + 任意自定义颜色染色
+     *  CUSTOM  - 自定义护甲层贴图(packs/<包>/armor/<物品id>_layer_1.png / _layer_2.png)
+     */
+    public String armorTexMode = "VANILLA";
+    /** TINT 模式的颜色 #RRGGBB */
+    public String armorColor = "#FF5555";
+
+    /** 体素 3D 模型名(空 = 使用 2D 贴图) */
+    public String model = "";
 
     public int maxCount = 64;
     public int maxDamage = 0;

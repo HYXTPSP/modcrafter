@@ -80,12 +80,19 @@ public final class DatapackGen {
         meta.add("pack", packObj);
         write(dir.resolve("pack.mcmeta"), meta);
 
-        // 收集挖掘标签 (跨所有内容包合并)
+        // 收集挖掘标签 (跨所有内容包合并) 与可染色物品标签
         Map<String, List<String>> mineable = new LinkedHashMap<>();
         Map<String, List<String>> needsTool = new LinkedHashMap<>();
+        List<String> dyeable = new ArrayList<>();
 
         for (ContentPack pack : PackManager.all()) {
             Path data = dir.resolve("data").resolve(pack.id);
+
+            for (dev.hyxt.modcrafter.data.ItemDef item : pack.items) {
+                if (item.isArmor() && "TINT".equals(item.armorTexMode)) {
+                    dyeable.add(pack.id + ":" + item.id);
+                }
+            }
 
             for (RecipeDef recipe : pack.recipes) {
                 JsonObject json = recipeJson(recipe);
@@ -127,6 +134,10 @@ public final class DatapackGen {
         for (Map.Entry<String, List<String>> e : needsTool.entrySet()) {
             write(mcTags.resolve(e.getKey() + ".json"), tagJson(e.getValue()));
         }
+        if (!dyeable.isEmpty()) {
+            write(dir.resolve("data").resolve("minecraft").resolve("tags").resolve("item")
+                .resolve("dyeable.json"), tagJson(dyeable));
+        }
     }
 
     /** 导出独立模组工程用: 只生成单个内容包的 data 目录(无 pack.mcmeta) */
@@ -134,6 +145,13 @@ public final class DatapackGen {
         Path data = dataRoot.resolve(pack.id);
         Map<String, List<String>> mineable = new LinkedHashMap<>();
         Map<String, List<String>> needsTool = new LinkedHashMap<>();
+        List<String> dyeable = new ArrayList<>();
+
+        for (dev.hyxt.modcrafter.data.ItemDef item : pack.items) {
+            if (item.isArmor() && "TINT".equals(item.armorTexMode)) {
+                dyeable.add(pack.id + ":" + item.id);
+            }
+        }
 
         for (RecipeDef recipe : pack.recipes) {
             JsonObject json = recipeJson(recipe);
@@ -171,6 +189,10 @@ public final class DatapackGen {
         }
         for (Map.Entry<String, List<String>> e : needsTool.entrySet()) {
             write(mcTags.resolve(e.getKey() + ".json"), tagJson(e.getValue()));
+        }
+        if (!dyeable.isEmpty()) {
+            write(dataRoot.resolve("minecraft").resolve("tags").resolve("item")
+                .resolve("dyeable.json"), tagJson(dyeable));
         }
     }
 

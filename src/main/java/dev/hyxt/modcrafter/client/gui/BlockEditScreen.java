@@ -39,6 +39,8 @@ public class BlockEditScreen extends BaseScreen {
     private static final List<String> TOOL_TYPES = List.of("pickaxe", "axe", "shovel", "hoe");
     private static final List<String> TOOL_LEVELS = List.of("NONE", "STONE", "IRON", "DIAMOND");
     private static final List<String> DROP_MODES = List.of("SELF", "NONE", "CUSTOM");
+    private static final List<String> TEX_MODES = List.of("SINGLE", "PER_FACE", "MODEL");
+    private static final List<String> FACING_MODES = List.of("NONE", "HORIZONTAL", "ALL");
 
     public BlockEditScreen(Screen parent, ContentPack pack, BlockDef editing) {
         super(parent, Text.translatable(editing == null ? "modcrafter.title.new_block" : "modcrafter.title.edit_block"));
@@ -66,6 +68,18 @@ public class BlockEditScreen extends BaseScreen {
         d.sound = src.sound;
         d.transparent = src.transparent;
         d.slipperiness = src.slipperiness;
+        d.textureMode = src.textureMode;
+        d.model = src.model;
+        d.facingMode = src.facingMode;
+        d.faces = new BlockDef.FacesDef();
+        if (src.faces != null) {
+            d.faces.up = src.faces.up;
+            d.faces.down = src.faces.down;
+            d.faces.north = src.faces.north;
+            d.faces.south = src.faces.south;
+            d.faces.east = src.faces.east;
+            d.faces.west = src.faces.west;
+        }
         d.drop = new BlockDef.DropDef();
         if (src.drop != null) {
             d.drop.mode = src.drop.mode;
@@ -95,37 +109,59 @@ public class BlockEditScreen extends BaseScreen {
         label(lx, y - 10, Text.translatable("modcrafter.label.elem_id"));
         idField = addField(lx, y, colW, 18, work.id);
         idField.setEditable(editing == null);
-        y += 30;
+        y += 28;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.elem_name"));
         nameField = addField(lx, y, colW, 18, work.name);
-        y += 30;
+        y += 28;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.hardness"));
         hardnessField = addField(lx, y, 60, 18, String.valueOf(work.hardness));
         label(lx + 70, y - 10, Text.translatable("modcrafter.label.resistance"));
         resistanceField = addField(lx + 70, y, 60, 18, String.valueOf(work.resistance));
-        y += 30;
+        y += 28;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.luminance"));
         luminanceField = addField(lx, y, 60, 18, String.valueOf(work.luminance));
         label(lx + 70, y - 10, Text.translatable("modcrafter.label.slipperiness"));
         slipperinessField = addField(lx + 70, y, 60, 18, String.valueOf(work.slipperiness));
-        y += 30;
+        y += 26;
 
         this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.sound." + v.toLowerCase()))
             .values(SOUNDS).initially(SOUNDS.contains(work.sound) ? work.sound : "STONE")
             .build(lx, y, colW, 20, Text.translatable("modcrafter.label.sound"),
                 (btn, v) -> work.sound = v));
-        y += 24;
+        y += 22;
 
         transparentBox = CheckboxWidget.builder(Text.translatable("modcrafter.label.transparent"), this.textRenderer)
             .pos(lx, y).checked(work.transparent).build();
         this.addDrawableChild(transparentBox);
-        y += 24;
+        y += 22;
 
-        addBtn(lx, y, colW, 20, Text.translatable("modcrafter.btn.pick_texture"),
-            () -> this.client.setScreen(new TexturePickScreen(this, pack.id, work.texture, ref -> work.texture = ref)));
+        // 外观模式: 单一贴图 / 六面贴图 / 体素模型
+        this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.texmode." + v.toLowerCase()))
+            .values(TEX_MODES).initially(TEX_MODES.contains(work.textureMode) ? work.textureMode : "SINGLE")
+            .build(lx, y, colW, 20, Text.translatable("modcrafter.label.tex_mode"),
+                (btn, v) -> {
+                    work.textureMode = v;
+                    rebuild();
+                }));
+        y += 22;
+
+        switch (work.textureMode) {
+            case "PER_FACE" -> addBtn(lx, y, colW, 20, Text.translatable("modcrafter.btn.face_textures"),
+                () -> this.client.setScreen(new FaceTexturesScreen(this, pack.id, work)));
+            case "MODEL" -> {
+                addBtn(lx, y, colW, 20, Text.translatable(work.model == null || work.model.isEmpty()
+                        ? "modcrafter.btn.pick_model" : "modcrafter.btn.pick_model_set"),
+                    () -> this.client.setScreen(new VoxelModelPickScreen(this, pack.id, work.model, name -> work.model = name)));
+                if (work.model != null && !work.model.isEmpty()) {
+                    label(lx + colW + 4, y + 6, Text.literal("§b" + work.model));
+                }
+            }
+            default -> addBtn(lx, y, colW, 20, Text.translatable("modcrafter.btn.pick_texture"),
+                () -> this.client.setScreen(new TexturePickScreen(this, pack.id, work.texture, ref -> work.texture = ref)));
+        }
 
         // ===== 右列 =====
         y = 42;
@@ -171,6 +207,13 @@ public class BlockEditScreen extends BaseScreen {
         label(rx + 100, y - 10, Text.literal("Y"));
         minYField = addField(rx + 100, y, 45, 18, String.valueOf(work.oreGen.minY));
         maxYField = addField(rx + 150, y, 45, 18, String.valueOf(work.oreGen.maxY));
+        y += 26;
+
+        // 朝向
+        this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.facing." + v.toLowerCase()))
+            .values(FACING_MODES).initially(FACING_MODES.contains(work.facingMode) ? work.facingMode : "NONE")
+            .build(rx, y, 195, 20, Text.translatable("modcrafter.label.facing_mode"),
+                (btn, v) -> work.facingMode = v));
 
         addBtn(cx - 105, this.height - 28, 100, 20, Text.translatable("modcrafter.btn.save"), this::save);
         addBtn(cx + 5, this.height - 28, 100, 20, Text.translatable("modcrafter.btn.back"), this::close);
@@ -225,9 +268,16 @@ public class BlockEditScreen extends BaseScreen {
         this.client.setScreen(ps);
     }
 
+    void rebuild() {
+        this.clearChildren();
+        this.init();
+    }
+
     @Override
     protected void renderExtra(DrawContext context, int mouseX, int mouseY, float delta) {
-        int cx = this.width / 2;
-        GuiUtil.drawPreview(context, pack.id, work.texture, cx - 155 + 146, 42 + 30 * 4 + 24 + 24 - 6, 32);
+        if ("SINGLE".equals(work.textureMode)) {
+            int cx = this.width / 2;
+            GuiUtil.drawPreview(context, pack.id, work.texture, cx - 155 + 146, 42 + 28 * 3 + 26 + 22 + 22 + 22 - 4, 24);
+        }
     }
 }

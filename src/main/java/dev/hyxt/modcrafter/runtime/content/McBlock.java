@@ -4,22 +4,43 @@ import dev.hyxt.modcrafter.data.BlockDef;
 import dev.hyxt.modcrafter.event.EventRuntime;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 
 /** 自定义方块 */
 public class McBlock extends Block {
     public final BlockDef def;
     public final String packId;
+    /** 体素模型的包围盒轮廓(null = 满格) */
+    protected volatile VoxelShape outlineShape = null;
 
     public McBlock(BlockDef def, String packId, Settings settings) {
         super(settings);
         this.def = def;
         this.packId = packId;
+    }
+
+    /** 设置体素包围盒(0-16 坐标, [minX,minY,minZ,maxX,maxY,maxZ]);null 或满格 = 满格轮廓 */
+    public void updateShapeBounds(double[] bounds) {
+        if (bounds == null || ShapeUtil.isFullCube(bounds)) {
+            this.outlineShape = null;
+        } else {
+            this.outlineShape = ShapeUtil.shapeFor(bounds, Direction.NORTH);
+        }
+    }
+
+    @Override
+    protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+        VoxelShape shape = this.outlineShape;
+        return shape != null ? shape : super.getOutlineShape(state, world, pos, context);
     }
 
     @Override

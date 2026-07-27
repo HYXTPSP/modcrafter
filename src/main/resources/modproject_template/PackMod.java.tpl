@@ -55,9 +55,11 @@ public class PackMod implements ModInitializer {
             ITEMS.put(id, item);
         }
 
+        Map<String, double[]> shapes = Defs.loadShapes();
+
         for (Defs.BlockD def : pack.blocks) {
             Identifier id = Identifier.of(PACK_ID, def.id);
-            Block block = buildBlock(def);
+            Block block = buildBlock(def, shapes.get(def.id));
             Registry.register(Registries.BLOCK, id, block);
             BlockItem blockItem = new BlockItem(block, new Item.Settings());
             Registry.register(Registries.ITEM, id, blockItem);
@@ -141,7 +143,7 @@ public class PackMod implements ModInitializer {
                 return new ContentClasses.McHoeItem(def, mat, settings);
             }
             case "HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS" -> {
-                RegistryEntry<ArmorMaterial> mat = parseArmorMaterial(def.armorMaterial);
+                RegistryEntry<ArmorMaterial> mat = armorMaterialFor(def);
                 ArmorItem.Type type = switch (def.type) {
                     case "HELMET" -> ArmorItem.Type.HELMET;
                     case "CHESTPLATE" -> ArmorItem.Type.CHESTPLATE;
@@ -150,6 +152,10 @@ public class PackMod implements ModInitializer {
                 };
                 if (def.maxDamage <= 0) {
                     settings.maxDamage(type.getMaxDamage(15));
+                }
+                if ("TINT".equals(def.armorTexMode)) {
+                    settings.component(net.minecraft.component.DataComponentTypes.DYED_COLOR,
+                        new net.minecraft.component.type.DyedColorComponent(parseColor(def.armorColor, 0xFF5555), false));
                 }
                 return new ContentClasses.McArmorItem(def, mat, type, settings);
             }
@@ -163,7 +169,7 @@ public class PackMod implements ModInitializer {
         return def.tool != null ? def.tool : new Defs.ToolD();
     }
 
-    private static Block buildBlock(Defs.BlockD def) {
+    private static Block buildBlock(Defs.BlockD def, double[] bounds) {
         AbstractBlock.Settings settings = AbstractBlock.Settings.create()
             .strength(Math.max(0f, def.hardness), Math.max(0f, def.resistance))
             .sounds(parseSound(def.sound));
@@ -173,10 +179,48 @@ public class PackMod implements ModInitializer {
         }
         if (def.requiresTool) settings.requiresTool();
         if (def.transparent) settings.nonOpaque();
+        if (bounds != null && !ContentClasses.isFullCube(bounds)) settings.nonOpaque();
         if (def.slipperiness > 0 && def.slipperiness != 0.6f) {
             settings.slipperiness(Math.min(0.999f, def.slipperiness));
         }
-        return new ContentClasses.McBlock(def, settings);
+        ContentClasses.McBlock block = switch (def.facingMode == null ? "NONE" : def.facingMode) {
+            case "HORIZONTAL" -> new ContentClasses.McHorizontalBlock(def, settings);
+            case "ALL" -> new ContentClasses.McFacingBlock(def, settings);
+            default -> new ContentClasses.McBlock(def, settings);
+        };
+        block.updateShapeBounds(bounds);
+        return block;
+    }
+
+    /** VANILLA 用原版材质;TINT/CUSTOM 注册专属材质(数值继承基础材质) */
+    private static RegistryEntry<ArmorMaterial> armorMaterialFor(Defs.ItemD def) {
+        RegistryEntry<ArmorMaterial> base = parseArmorMaterial(def.armorMaterial);
+        String mode = def.armorTexMode == null ? "VANILLA" : def.armorTexMode;
+        if ("VANILLA".equals(mode)) return base;
+        Identifier id = Identifier.of(PACK_ID, def.id + "_mat");
+        ArmorMaterial existing = Registries.ARMOR_MATERIAL.get(id);
+        if (existing != null) return Registries.ARMOR_MATERIAL.getEntry(existing);
+        ArmorMaterial bm = base.value();
+        java.util.List<ArmorMaterial.Layer> layers;
+        if ("TINT".equals(mode)) {
+            layers = java.util.List.of(
+                new ArmorMaterial.Layer(Identifier.of("minecraft", "leather"), "", true),
+                new ArmorMaterial.Layer(Identifier.of("minecraft", "leather"), "_overlay", false));
+        } else {
+            layers = java.util.List.of(new ArmorMaterial.Layer(Identifier.of(PACK_ID, def.id), "", false));
+        }
+        ArmorMaterial material = new ArmorMaterial(
+            bm.defense(), bm.enchantability(), bm.equipSound(), bm.repairIngredient(),
+            layers, bm.toughness(), bm.knockbackResistance());
+        return Registry.registerReference(Registries.ARMOR_MATERIAL, id, material);
+    }
+
+    private static int parseColor(String hex, int fallback) {
+        try {
+            return (int) Long.parseLong(hex.replace("#", "").trim(), 16) & 0xFFFFFF;
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     private static RegistryEntry<ArmorMaterial> parseArmorMaterial(String s) {

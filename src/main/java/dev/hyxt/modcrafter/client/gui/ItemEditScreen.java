@@ -59,6 +59,9 @@ public class ItemEditScreen extends BaseScreen {
         d.texture = src.texture;
         d.type = src.type;
         d.armorMaterial = src.armorMaterial;
+        d.armorTexMode = src.armorTexMode;
+        d.armorColor = src.armorColor;
+        d.model = src.model;
         d.maxCount = src.maxCount;
         d.maxDamage = src.maxDamage;
         d.rarity = src.rarity;
@@ -91,33 +94,42 @@ public class ItemEditScreen extends BaseScreen {
         label(lx, y - 10, Text.translatable("modcrafter.label.elem_id"));
         idField = addField(lx, y, colW, 18, work.id);
         idField.setEditable(editing == null);
-        y += 32;
+        y += 30;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.elem_name"));
         nameField = addField(lx, y, colW, 18, work.name);
-        y += 32;
+        y += 30;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.tooltip"));
         tooltipField = addField(lx, y, colW, 18,
             work.tooltip.isEmpty() ? "" : work.tooltip.get(0));
-        y += 32;
+        y += 30;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.type"));
         this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.itemtype." + v.toLowerCase()))
             .values(TYPES).initially(TYPES.contains(work.type) ? work.type : "ITEM")
             .build(lx, y, colW, 20, Text.translatable("modcrafter.label.type"),
                 (btn, v) -> work.type = v));
-        y += 32;
+        y += 30;
 
         label(lx, y - 10, Text.translatable("modcrafter.label.rarity"));
         this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.rarity." + v.toLowerCase()))
             .values(RARITIES).initially(RARITIES.contains(work.rarity) ? work.rarity : "COMMON")
             .build(lx, y, colW, 20, Text.translatable("modcrafter.label.rarity"),
                 (btn, v) -> work.rarity = v));
-        y += 32;
+        y += 30;
 
         addBtn(lx, y, colW, 20, Text.translatable("modcrafter.btn.pick_texture"),
             () -> this.client.setScreen(new TexturePickScreen(this, pack.id, work.texture, ref -> work.texture = ref)));
+        y += 24;
+
+        // 体素 3D 模型
+        addBtn(lx, y, colW, 20, Text.translatable(work.model == null || work.model.isEmpty()
+                ? "modcrafter.btn.pick_model" : "modcrafter.btn.pick_model_set"),
+            () -> this.client.setScreen(new VoxelModelPickScreen(this, pack.id, work.model, name -> work.model = name)));
+        if (work.model != null && !work.model.isEmpty()) {
+            label(lx + colW + 4, y + 6, Text.literal("§b" + work.model));
+        }
 
         // 右列
         y = 42;
@@ -163,11 +175,19 @@ public class ItemEditScreen extends BaseScreen {
         label(rx + 102, y + 6, Text.translatable("modcrafter.label.attack_speed"));
         attackSpeedField = addField(rx + 145, y, 50, 18, String.valueOf(tool.attackSpeed));
 
-        // 盔甲材质(类型=盔甲时生效)
+        // 盔甲材质(类型=盔甲时生效) + 穿戴外观
         this.addDrawableChild(CyclingButtonWidget.<String>builder(v -> Text.translatable("modcrafter.material." + v.toLowerCase()))
             .values(ARMOR_MATERIALS).initially(ARMOR_MATERIALS.contains(work.armorMaterial) ? work.armorMaterial : "IRON")
             .build(rx, y, 95, 20, Text.translatable("modcrafter.label.armor_material"),
                 (btn, v) -> work.armorMaterial = v));
+        addBtn(rx + 100, y + 26, 95, 20, Text.translatable("modcrafter.btn.armor_look"), () -> {
+            String id = idField.getText().trim().toLowerCase();
+            if (id.isEmpty()) {
+                setFeedback(Text.translatable("modcrafter.msg.need_id_first"), false);
+                return;
+            }
+            this.client.setScreen(new ArmorLookScreen(this, pack.id, id, work));
+        });
 
         // 底部
         addBtn(cx - 105, this.height - 28, 100, 20, Text.translatable("modcrafter.btn.save"), this::save);
@@ -224,6 +244,6 @@ public class ItemEditScreen extends BaseScreen {
     protected void renderExtra(DrawContext context, int mouseX, int mouseY, float delta) {
         // 贴图预览: 左列底部按钮右侧
         int cx = this.width / 2;
-        GuiUtil.drawPreview(context, pack.id, work.texture, cx - 155 + 146, 42 + 32 * 5 - 6, 32);
+        GuiUtil.drawPreview(context, pack.id, work.texture, cx - 155 + 146, 42 + 30 * 5 - 8, 32);
     }
 }

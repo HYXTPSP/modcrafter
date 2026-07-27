@@ -30,11 +30,13 @@ public final class HotAdd {
             int added;
             unfreeze(Registries.ITEM);
             unfreeze(Registries.BLOCK);
+            unfreeze(Registries.ARMOR_MATERIAL);
             try {
                 added = PackRegistrar.registerPack(pack);
             } finally {
                 refreeze(Registries.ITEM);
                 refreeze(Registries.BLOCK);
+                refreeze(Registries.ARMOR_MATERIAL);
             }
             EventRuntime.rebuildIndex();
             return added;

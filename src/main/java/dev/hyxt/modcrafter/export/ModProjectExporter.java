@@ -66,6 +66,15 @@ public final class ModProjectExporter {
         Files.createDirectories(resources.resolve("packdata"));
         Files.copy(packJson, resources.resolve("packdata/pack.json"), StandardCopyOption.REPLACE_EXISTING);
 
+        // 体素模型方块的包围盒(碰撞/轮廓箱),导出时预计算
+        java.util.Map<String, double[]> shapes = new java.util.LinkedHashMap<>();
+        for (dev.hyxt.modcrafter.data.BlockDef blockDef : pack.blocks) {
+            double[] bounds = dev.hyxt.modcrafter.runtime.PackRegistrar.modelBounds(blockDef, pack.id);
+            if (bounds != null) shapes.put(blockDef.id, bounds);
+        }
+        Files.writeString(resources.resolve("packdata/shapes.json"),
+            PackManager.GSON.toJson(shapes), StandardCharsets.UTF_8);
+
         // assets(模型/贴图/语言)与 data(配方/掉落/标签)
         ResourcePackGen.generateInto(resources.resolve("assets").resolve(pack.id), pack);
         DatapackGen.generateSinglePackData(resources.resolve("data"), pack);

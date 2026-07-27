@@ -1,7 +1,0 @@
--d
-/tmp/out
---release
-21
--Xmaxerrs
-10000
-@/tmp/sources.txt
